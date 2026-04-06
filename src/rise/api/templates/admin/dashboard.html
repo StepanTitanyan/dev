@@ -1,0 +1,135 @@
+{% extends "admin/base.html" %}
+{% block title %} — Dashboard{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h4 class="mb-0">Dashboard</h4>
+  <small class="text-muted">Today's summary</small>
+</div>
+
+<!-- Metric cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card text-center border-0 shadow-sm">
+      <div class="card-body py-3">
+        <div class="fs-2 fw-bold text-secondary">{{ metrics.queued }}</div>
+        <div class="small text-muted">Queued</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card text-center border-0 shadow-sm">
+      <div class="card-body py-3">
+        <div class="fs-2 fw-bold text-primary">{{ metrics.processing }}</div>
+        <div class="small text-muted">Processing</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card text-center border-0 shadow-sm">
+      <div class="card-body py-3">
+        <div class="fs-2 fw-bold text-warning">{{ metrics.retrying }}</div>
+        <div class="small text-muted">Retrying</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card text-center border-0 shadow-sm">
+      <div class="card-body py-3">
+        <div class="fs-2 fw-bold text-success">{{ metrics.completed }}</div>
+        <div class="small text-muted">Completed</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card text-center border-0 shadow-sm">
+      <div class="card-body py-3">
+        <div class="fs-2 fw-bold text-danger">{{ metrics.failed }}</div>
+        <div class="small text-muted">Failed</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card text-center border-0 shadow-sm bg-dark text-white">
+      <div class="card-body py-3">
+        <div class="fs-2 fw-bold">{{ metrics.submitted_today }}</div>
+        <div class="small opacity-75">Total Today</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Worker sessions -->
+<h6 class="text-uppercase text-muted fw-semibold mb-3 small">Worker Sessions</h6>
+<div class="row g-3 mb-4">
+  {% for s in sessions %}
+  <div class="col-md-6 col-xl-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold font-monospace small">{{ s.worker_type }}</span>
+        <span class="badge
+          {% if s.is_authenticated %}bg-success
+          {% elif s.status == 'waiting_for_otp' %}bg-warning text-dark
+          {% else %}bg-secondary{% endif %}">{{ s.status }}</span>
+      </div>
+      <div class="card-body small">
+        <div class="row">
+          <div class="col-5 text-muted">Last login</div>
+          <div class="col-7">{{ s.last_login_at | dt }}</div>
+        </div>
+        <div class="row">
+          <div class="col-5 text-muted">OTP pending</div>
+          <div class="col-7">{{ s.waiting_for_otp_since | dt }}</div>
+        </div>
+        <div class="row">
+          <div class="col-5 text-muted">Updated</div>
+          <div class="col-7">{{ s.updated_at | dt }}</div>
+        </div>
+        {% if s.last_error %}
+        <div class="mt-2 text-danger small"><i class="bi bi-exclamation-triangle me-1"></i>{{ s.last_error | truncate(120) }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12"><p class="text-muted">No worker sessions.</p></div>
+  {% endfor %}
+</div>
+
+<!-- Recent applications -->
+<h6 class="text-uppercase text-muted fw-semibold mb-3 small">Recent Applications</h6>
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover table-sm mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th>
+          <th>Company</th>
+          <th>Tracking ID</th>
+          <th>Status</th>
+          <th>Step</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for app in recent_apps %}
+        <tr>
+          <td class="text-muted small">{{ app.id }}</td>
+          <td>{{ company_name(app) }}</td>
+          <td class="font-monospace small text-muted">{{ app.tracking_id[:14] }}…</td>
+          <td><span class="badge badge-{{ app.status }}">{{ app.status }}</span></td>
+          <td class="small text-muted">{{ app.current_step or '—' }}</td>
+          <td class="small text-nowrap text-muted">{{ app.created_at | dt }}</td>
+          <td><a href="/admin/applications/{{ app.id }}" class="btn btn-sm btn-outline-secondary py-0">View</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-3">No applications today</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="mt-2 text-end">
+  <a href="/admin/applications" class="small text-muted">View all →</a>
+</div>
+{% endblock %}

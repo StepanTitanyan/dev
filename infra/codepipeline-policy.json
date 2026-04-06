@@ -1,0 +1,26 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "S3",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:GetObjectVersion", "s3:PutObject", "s3:GetBucketVersioning"],
+      "Resource": [
+        "arn:aws:s3:::rise-pipeline-artifacts-667659727588",
+        "arn:aws:s3:::rise-pipeline-artifacts-667659727588/*"
+      ]
+    },
+    {
+      "Sid": "CodeBuild",
+      "Effect": "Allow",
+      "Action": ["codebuild:BatchGetBuilds", "codebuild:StartBuild"],
+      "Resource": "arn:aws:codebuild:eu-west-2:667659727588:project/rise-backend-build"
+    },
+    {
+      "Sid": "CodeStarConnection",
+      "Effect": "Allow",
+      "Action": ["codestar-connections:UseConnection"],
+      "Resource": "arn:aws:codestar-connections:eu-west-2:667659727588:connection/93ff1064-14f1-4915-a4c7-f7aa40ba6bd6"
+    }
+  ]
+}

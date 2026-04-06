@@ -1,0 +1,69 @@
+{
+  "name": "rise-backend-pipeline",
+  "roleArn": "arn:aws:iam::667659727588:role/codepipeline-rise-role",
+  "artifactStore": {
+    "type": "S3",
+    "location": "rise-pipeline-artifacts-667659727588"
+  },
+  "stages": [
+    {
+      "name": "Source",
+      "actions": [
+        {
+          "name": "BitbucketSource",
+          "actionTypeId": {
+            "category": "Source",
+            "owner": "AWS",
+            "provider": "CodeStarSourceConnection",
+            "version": "1"
+          },
+          "runOrder": 1,
+          "configuration": {
+            "BranchName": "main",
+            "ConnectionArn": "arn:aws:codestar-connections:eu-west-2:667659727588:connection/93ff1064-14f1-4915-a4c7-f7aa40ba6bd6",
+            "DetectChanges": "true",
+            "FullRepositoryId": "risefunding/rise-backend-services",
+            "OutputArtifactFormat": "CODE_ZIP"
+          },
+          "outputArtifacts": [
+            {
+              "name": "SourceArtifact"
+            }
+          ],
+          "inputArtifacts": []
+        }
+      ]
+    },
+    {
+      "name": "Build",
+      "actions": [
+        {
+          "name": "BuildAndDeploy",
+          "actionTypeId": {
+            "category": "Build",
+            "owner": "AWS",
+            "provider": "CodeBuild",
+            "version": "1"
+          },
+          "runOrder": 1,
+          "configuration": {
+            "ProjectName": "rise-backend-build"
+          },
+          "outputArtifacts": [
+            {
+              "name": "BuildArtifact"
+            }
+          ],
+          "inputArtifacts": [
+            {
+              "name": "SourceArtifact"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "version": 2,
+  "executionMode": "SUPERSEDED",
+  "pipelineType": "V2"
+}

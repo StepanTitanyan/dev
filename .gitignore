@@ -1,0 +1,77 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Packaging / build
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+secrets.json
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs / temp
+*.log
+logs/
+tmp/
+temp/
+
+# Local databases / sqlite
+*.db
+*.sqlite
+*.sqlite3
+
+# OS / misc
+.cache/
+
+# Project-specific sensitive artifacts
+sms_messages.json
+session_cookies.json
+auth_dump.json
+otp_dump.json
+captured_requests/
+exports/
+
+# Terraform / cloud if added later
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# Node (if frontend tooling is added later)
+node_modules/

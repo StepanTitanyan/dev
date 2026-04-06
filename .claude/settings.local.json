@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash('C:\\\\Program Files\\\\Amazon\\\\AWSCLIV2\\\\aws.exe' elbv2 create-target-group --name tg-api --protocol HTTP --port 8000 --vpc-id vpc-0c40ee9073453d955 --target-type ip --health-check-protocol HTTP --health-check-path /health --health-check-interval-seconds 30 --healthy-threshold-count 2 --unhealthy-threshold-count 3 --region eu-west-2)"
+    ]
+  }
+}

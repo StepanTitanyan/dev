@@ -1,0 +1,46 @@
+version: 1.0
+runtime: python311
+build:
+  commands:
+    build:
+      - pip3 install --no-cache-dir -r requirements.txt --target /app/dependencies
+      - chmod +x start.sh
+run:
+  runtime-version: 3.11
+  command: sh start.sh
+  network:
+    port: 8000
+  env:
+    - name: PYTHONPATH
+      value: "/app/dependencies:/app/src"
+    - name: PATH
+      value: "/app/dependencies/bin:/usr/local/bin:/usr/bin:/bin"
+    - name: POSTGRES_DB
+      value: "postgres"
+    - name: POSTGRES_PORT
+      value: "5432"
+    - name: POSTGRES_HOST
+      value: "database-1.cx68ouakcz0x.eu-west-2.rds.amazonaws.com"
+    - name: POSTGRES_USER
+      value: "postgres"
+    - name: ENABLE_SQS
+      value: "true"
+    - name: SQS_QUEUE_URL
+      value: "https://sqs.eu-west-2.amazonaws.com/667659727588/apprunner-queue"
+    - name: SALESFORCE_INSTANCE_URL
+      value: "https://willemrisefunding--risefundev.sandbox.my.salesforce.com"
+    - name: SALESFORCE_API_VERSION
+      value: "v60.0"
+  secrets:
+    - name: POSTGRES_PASSWORD
+      value-from: "arn:aws:secretsmanager:eu-west-2:667659727588:secret:rds!db-fe918ac3-c452-4cfc-93e7-ce45f0bc42fe-Gcm1Ha:password::"
+    - name: APP_USERNAME
+      value-from: "arn:aws:secretsmanager:eu-west-2:667659727588:secret:FC_USER_PASS-S6WLtK:FC_APP_USERNAME::"
+    - name: APP_PASSWORD
+      value-from: "arn:aws:secretsmanager:eu-west-2:667659727588:secret:FC_USER_PASS-S6WLtK:FC_APP_PASSWORD::"
+    - name: API_BASE_TOKEN
+      value-from: "arn:aws:secretsmanager:eu-west-2:667659727588:secret:API_BASE_TOKEN-Zq6CKl:API_BASE_TOKEN::"
+    - name: SALESFORCE_CLIENT_ID
+      value-from: "arn:aws:secretsmanager:eu-west-2:667659727588:secret:Salesforce_Dev_credentials-uJL0WR:SALESFORCE_CLIENT_ID::"
+    - name: SALESFORCE_CLIENT_SECRET
+      value-from: "arn:aws:secretsmanager:eu-west-2:667659727588:secret:Salesforce_Dev_credentials-uJL0WR:SALESFORCE_CLIENT_SECRET::"

@@ -1,0 +1,49 @@
+version: 0.2
+
+env:
+  variables:
+    PYTHONPATH: src
+  parameter-store:
+    AWS_ACCOUNT_ID: /rise/AWS_ACCOUNT_ID
+    AWS_REGION: /rise/AWS_REGION
+    ECR_REPO: /rise/ECR_REPO
+    ECS_CLUSTER: /rise/ECS_CLUSTER
+    ECS_SERVICE_API: /rise/ECS_SERVICE_API
+    ECS_SERVICE_WORKER: /rise/ECS_SERVICE_WORKER
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+    commands:
+      - pip install -r requirements.txt --quiet
+
+  pre_build:
+    commands:
+      - echo "Running tests..."
+      - python -m pytest tests/ -v --tb=short
+      - echo "Tests passed. Logging in to ECR..."
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-8)
+      - IMAGE_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO
+
+  build:
+    commands:
+      - echo "Building Docker image tag=$IMAGE_TAG..."
+      - docker build -t $IMAGE_URI:$IMAGE_TAG -t $IMAGE_URI:latest .
+
+  post_build:
+    commands:
+      - echo "Pushing image..."
+      - docker push $IMAGE_URI:$IMAGE_TAG
+      - docker push $IMAGE_URI:latest
+      - echo "Updating ECS services..."
+      - aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE_API --force-new-deployment --region $AWS_REGION
+      - aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE_WORKER --force-new-deployment --region $AWS_REGION
+      - echo "Deploy triggered. ECS will pull the new image."
+      - printf '[{"name":"rise-api","imageUri":"%s:latest"}]' "$IMAGE_URI" > imagedef.json
+
+artifacts:
+  files:
+    - imagedef.json
+  discard-paths: yes

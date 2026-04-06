@@ -1,0 +1,80 @@
+{% extends "admin/base.html" %}
+{% block title %} — CloudWatch Logs{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h4 class="mb-0">CloudWatch Logs</h4>
+  <small class="text-muted">AWS region: read-only</small>
+</div>
+
+<!-- Filter form -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <form method="get" action="/admin/logs" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label small mb-1">Log Group</label>
+        <select name="log_group" class="form-select form-select-sm font-monospace">
+          {% for g in log_groups %}
+          <option value="{{ g }}" {% if log_group == g %}selected{% endif %}>{{ g }}</option>
+          {% endfor %}
+          {% if log_group and log_group not in log_groups %}
+          <option value="{{ log_group }}" selected>{{ log_group }}</option>
+          {% endif %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small mb-1">Filter Pattern <span class="text-muted">(CloudWatch syntax)</span></label>
+        <input type="text" name="filter_pattern" class="form-control form-control-sm font-monospace"
+               placeholder='e.g. ERROR or { $.level = "ERROR" }' value="{{ filter_pattern }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small mb-1">Time window</label>
+        <select name="hours" class="form-select form-select-sm">
+          {% for h, label in [(1,'Last 1 hour'), (3,'Last 3 hours'), (6,'Last 6 hours'), (24,'Last 24 hours'), (48,'Last 48 hours'), (168,'Last 7 days')] %}
+          <option value="{{ h }}" {% if hours == h %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary btn-sm w-100">Fetch Logs</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger">
+  <strong><i class="bi bi-exclamation-triangle me-1"></i>CloudWatch Error:</strong> {{ error }}
+</div>
+{% endif %}
+
+<!-- Log events -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <span class="small fw-semibold">{{ events | length }} events</span>
+    <span class="small text-muted font-monospace">{{ log_group }}</span>
+  </div>
+  {% if events %}
+  <div style="max-height:600px;overflow-y:auto">
+    <table class="table table-sm mb-0 font-monospace" style="font-size:.78rem">
+      <thead class="table-dark sticky-top">
+        <tr><th style="width:160px">Timestamp</th><th style="width:180px">Stream</th><th>Message</th></tr>
+      </thead>
+      <tbody>
+        {% for ev in events %}
+        <tr class="{% if 'ERROR' in ev.message or 'error' in ev.message %}table-danger{% elif 'WARNING' in ev.message or 'WARN' in ev.message %}table-warning{% endif %}">
+          <td class="text-muted text-nowrap">{{ ev.timestamp }}</td>
+          <td class="text-muted text-truncate" style="max-width:180px" title="{{ ev.stream }}">{{ ev.stream }}</td>
+          <td style="white-space:pre-wrap;word-break:break-all">{{ ev.message }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% elif not error %}
+  <div class="card-body text-center text-muted py-4">
+    <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+    No log events found for the selected criteria.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

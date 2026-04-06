@@ -1,0 +1,72 @@
+{% extends "admin/base.html" %}
+{% block title %} — Workers{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h4 class="mb-0">Worker Sessions</h4>
+  <small class="text-muted">Live auth state per lender worker</small>
+</div>
+
+{% for s in sessions %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white d-flex align-items-center gap-3">
+    <span class="fw-semibold font-monospace">{{ s.worker_type }}</span>
+    <span class="badge
+      {% if s.is_authenticated %}bg-success
+      {% elif s.status == 'waiting_for_otp' %}bg-warning text-dark
+      {% elif s.status == 'logged_out' %}bg-secondary
+      {% else %}bg-info{% endif %} fs-6">{{ s.status }}</span>
+    <span class="ms-auto small text-muted">Updated {{ s.updated_at | dt }}</span>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <table class="table table-sm mb-0">
+          <tr><th class="text-muted fw-normal small" style="width:45%">Authenticated</th>
+              <td>{% if s.is_authenticated %}<span class="badge bg-success">Yes</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td></tr>
+          <tr><th class="text-muted fw-normal small">Last Login</th>
+              <td class="small">{{ s.last_login_at | dt }}</td></tr>
+          <tr><th class="text-muted fw-normal small">OTP Pending Since</th>
+              <td class="small">{{ s.waiting_for_otp_since | dt }}</td></tr>
+          <tr><th class="text-muted fw-normal small">OTP Received</th>
+              <td class="small">{{ s.otp_received_at | dt }}</td></tr>
+        </table>
+      </div>
+      <div class="col-md-4">
+        {% if s.last_error %}
+        <div class="alert alert-danger py-2 mb-0 small">
+          <strong><i class="bi bi-exclamation-triangle me-1"></i>Last Error</strong>
+          <div class="mt-1">{{ s.last_error }}</div>
+        </div>
+        {% else %}
+        <div class="alert alert-success py-2 mb-0 small">
+          <i class="bi bi-check-circle me-1"></i>No errors
+        </div>
+        {% endif %}
+      </div>
+      <div class="col-md-4">
+        <div class="text-muted small mb-1">Recent OTP Messages</div>
+        {% set otps = recent_otps.get(s.worker_type, []) %}
+        {% if otps %}
+        <table class="table table-sm mb-0">
+          <thead><tr><th class="small">Time</th><th class="small">Code</th><th class="small">Status</th></tr></thead>
+          <tbody>
+          {% for otp in otps %}
+          <tr>
+            <td class="small text-muted">{{ otp.received_at | dt }}</td>
+            <td class="font-monospace small">{{ otp.otp_code or '—' }}</td>
+            <td><span class="badge {% if otp.status == 'consumed' %}bg-success{% else %}bg-warning text-dark{% endif %} small">{{ otp.status }}</span></td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted small mb-0">No OTP messages yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-info">No worker sessions found. Workers create sessions automatically on first run.</div>
+{% endfor %}
+{% endblock %}

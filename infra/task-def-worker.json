@@ -1,0 +1,64 @@
+{
+  "family": "rise-worker-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::667659727588:role/ecs-task-execution-role",
+  "taskRoleArn": "arn:aws:iam::667659727588:role/ecs-task-role",
+  "containerDefinitions": [
+    {
+      "name": "rise-worker",
+      "image": "667659727588.dkr.ecr.eu-west-2.amazonaws.com/rise-backend-services:latest",
+      "essential": true,
+      "command": [
+        "python3", "-m", "rise.workers.funding_circle.runner"
+      ],
+      "environment": [
+        { "name": "PYTHONPATH",            "value": "/app/src" },
+        { "name": "AWS_REGION",            "value": "eu-west-2" },
+        { "name": "POSTGRES_HOST",         "value": "database-1.cx68ouakcz0x.eu-west-2.rds.amazonaws.com" },
+        { "name": "POSTGRES_PORT",         "value": "5432" },
+        { "name": "POSTGRES_DB",           "value": "postgres" },
+        { "name": "POSTGRES_USER",         "value": "postgres" },
+        { "name": "SQS_QUEUE_URL",          "value": "https://sqs.eu-west-2.amazonaws.com/667659727588/rise-queue-dev" },
+        { "name": "ENABLE_SQS",            "value": "true" },
+        { "name": "LOG_LEVEL",             "value": "INFO" }
+      ],
+      "secrets": [
+        {
+          "name": "POSTGRES_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:eu-west-2:667659727588:secret:rds!db-fe918ac3-c452-4cfc-93e7-ce45f0bc42fe-Gcm1Ha:password::"
+        },
+        {
+          "name": "APP_USERNAME",
+          "valueFrom": "arn:aws:secretsmanager:eu-west-2:667659727588:secret:FC_USER_PASS-S6WLtK:FC_APP_USERNAME::"
+        },
+        {
+          "name": "APP_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:eu-west-2:667659727588:secret:FC_USER_PASS-S6WLtK:FC_APP_PASSWORD::"
+        },
+        {
+          "name": "SALESFORCE_CLIENT_ID",
+          "valueFrom": "arn:aws:secretsmanager:eu-west-2:667659727588:secret:Salesforce_Dev_credentials-uJL0WR:SALESFORCE_CLIENT_ID::"
+        },
+        {
+          "name": "SALESFORCE_CLIENT_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:eu-west-2:667659727588:secret:Salesforce_Dev_credentials-uJL0WR:SALESFORCE_CLIENT_SECRET::"
+        },
+        {
+          "name": "SALESFORCE_INSTANCE_URL",
+          "valueFrom": "arn:aws:secretsmanager:eu-west-2:667659727588:secret:Salesforce_Dev_credentials-uJL0WR:SALESFORCE_INSTANCE_URL::"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/rise-worker",
+          "awslogs-region": "eu-west-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+python-dotenv
+requests
+python-multipart
+rapidfuzz
+boto3
+gunicorn
+alembic
+jinja2
+pytest
+pytest-mock
+httpx
