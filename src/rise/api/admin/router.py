@@ -133,6 +133,14 @@ def application_detail(
     raw_json = json.dumps(app.raw_input_json, indent=2) if app.raw_input_json else "{}"
     working_json = json.dumps(app.working_payload_json, indent=2) if app.working_payload_json else "{}"
 
+    system_block = (app.working_payload_json or {}).get("system", {})
+    files_data = {
+        "content_version_ids": (app.raw_input_json or {}).get("content_version_ids", []),
+        "uploaded_documents": system_block.get("uploaded_documents", []),
+        "uploaded_bank_statements": system_block.get("uploaded_bank_statement_documents", []),
+        "processing_files_dir": system_block.get("processing_files_dir"),
+    }
+
     return templates.TemplateResponse(request, "admin/application_detail.html", {
         "active": "applications",
         "app": app,
@@ -140,6 +148,7 @@ def application_detail(
         "events": events,
         "raw_json": raw_json,
         "working_json": working_json,
+        "files_data": files_data,
         "company_name": _company_name(app),
     })
 
@@ -174,14 +183,17 @@ def workers(request: Request, db: Session = Depends(get_db)):
 
 DEFAULT_LOG_GROUP = "/ecs/rise-api"
 
+PINNED_LOG_GROUPS = [
+    "/ecs/rise-api",
+    "/ecs/rise-worker",
+    "/ecs/rise-worker-prod",
+]
+
 @router.get("/logs", response_class=HTMLResponse)
-def logs(
-    request: Request,
-    log_group: str = Query(DEFAULT_LOG_GROUP),
-    filter_pattern: str = Query(""),
-    hours: int = Query(1, ge=1, le=168),
-):
-    log_groups = list_log_groups("/ecs/rise")
+def logs(request: Request, log_group: str = Query(DEFAULT_LOG_GROUP), filter_pattern: str = Query(""), hours: int = Query(1, ge=1, le=168),):
+    discovered = list_log_groups("/ecs/rise")
+    log_groups = list(dict.fromkeys(PINNED_LOG_GROUPS + discovered))
+
     if not log_groups:
         log_groups = [DEFAULT_LOG_GROUP]
 

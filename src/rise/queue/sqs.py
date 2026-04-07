@@ -28,9 +28,11 @@ def enqueue_application_job(application_id: int, tracking_id: str):
         settings.AWS_REGION)
 
     import boto3
+    from botocore.config import Config as BotocoreConfig
 
     try:
-        sqs = boto3.client("sqs", region_name=settings.AWS_REGION)
+        sqs = boto3.client("sqs", region_name=settings.AWS_REGION,
+                           config=BotocoreConfig(connect_timeout=3, read_timeout=5, retries={"max_attempts": 1}))
         response = sqs.send_message(QueueUrl=settings.SQS_QUEUE_URL,
             MessageBody=json.dumps(
                 {

@@ -6,15 +6,25 @@ from rise.config.config import settings
 logger = logging.getLogger(__name__)
 
 
+KNOWN_LOG_GROUPS = [
+    "/ecs/rise-api",
+    "/ecs/rise-worker",
+    "/ecs/rise-worker-prod"]
+
 def list_log_groups(prefix: str = "/ecs/rise") -> list[str]:
     try:
         import boto3
         client = boto3.client("logs", region_name=settings.AWS_REGION)
         resp = client.describe_log_groups(logGroupNamePrefix=prefix, limit=20)
-        return [g["logGroupName"] for g in resp.get("logGroups", [])]
+        groups = [g["logGroupName"] for g in resp.get("logGroups", [])]
+        # Merge with known groups so they always appear even if CW returns nothing
+        for g in KNOWN_LOG_GROUPS:
+            if g not in groups:
+                groups.append(g)
+        return sorted(groups)
     except Exception:
         logger.exception("Failed to list CloudWatch log groups")
-        return []
+        return KNOWN_LOG_GROUPS
 
 
 def fetch_log_events(
@@ -22,7 +32,7 @@ def fetch_log_events(
     filter_pattern: str = "",
     start_dt: datetime | None = None,
     end_dt: datetime | None = None,
-    limit: int = 200,
+    limit: int = 700,
 ) -> tuple[list[dict], str | None]:
     """Returns (events, error_message). events is a list of dicts with timestamp/message."""
     try:

@@ -9,15 +9,11 @@
   "containerDefinitions": [
     {
       "name": "rise-api",
-      "image": "667659727588.dkr.ecr.eu-west-2.amazonaws.com/rise-backend-services:latest",
+      "image": "IMAGE_PLACEHOLDER",
       "essential": true,
       "command": [
-        "gunicorn",
-        "-k", "uvicorn.workers.UvicornWorker",
-        "rise.api.server:app",
-        "-b", "0.0.0.0:8000",
-        "--workers", "2",
-        "--timeout", "120"
+        "sh", "-c",
+        "cd /app && alembic upgrade head && gunicorn -k uvicorn.workers.UvicornWorker rise.api.server:app -b 0.0.0.0:8000 --workers 2 --timeout 120"
       ],
       "portMappings": [
         {

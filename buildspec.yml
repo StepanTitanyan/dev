@@ -37,9 +37,15 @@ phases:
       - echo "Pushing image..."
       - docker push $IMAGE_URI:$IMAGE_TAG
       - docker push $IMAGE_URI:latest
-      - echo "Updating ECS services..."
-      - aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE_API --force-new-deployment --region $AWS_REGION
-      - aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE_WORKER --force-new-deployment --region $AWS_REGION
+      - echo "Registering task definitions..."
+      - sed "s|IMAGE_PLACEHOLDER|$IMAGE_URI:latest|g" infra/task-def-api.json > task-def-api-rendered.json
+      - sed "s|IMAGE_PLACEHOLDER|$IMAGE_URI:latest|g" infra/task-def-worker-prod.json > task-def-worker-rendered.json
+      - API_TASK_DEF=$(aws ecs register-task-definition --cli-input-json file://task-def-api-rendered.json --region $AWS_REGION --query "taskDefinition.taskDefinitionArn" --output text)
+      - WORKER_TASK_DEF=$(aws ecs register-task-definition --cli-input-json file://task-def-worker-rendered.json --region $AWS_REGION --query "taskDefinition.taskDefinitionArn" --output text)
+      - echo "API task def $API_TASK_DEF"
+      - echo "Worker task def $WORKER_TASK_DEF"
+      - aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE_API --task-definition $API_TASK_DEF --force-new-deployment --region $AWS_REGION
+      - aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE_WORKER --task-definition $WORKER_TASK_DEF --force-new-deployment --region $AWS_REGION
       - echo "Deploy triggered. ECS will pull the new image."
       - printf '[{"name":"rise-api","imageUri":"%s:latest"}]' "$IMAGE_URI" > imagedef.json
 

@@ -581,7 +581,7 @@ def step_get_contact_details(session: requests.Session, salesforce_payload: dict
     resolved_state = next_action_result["response"].get("type")
     logger.info("[WORKFLOW] Contact details resolved next state=%s application_id=%s", resolved_state, application_id)
 
-    if resolved_state in {"get_bank_statements", "amend_bank_statements"}:
+    if resolved_state in {"get_bank_statements", "amend_bank_statements", "parse_bank_statements"}:
         salesforce_payload["system"] = salesforce_payload.get("system") or {}
         salesforce_payload["system"]["bank_statements_action_type"] = resolved_state
 
@@ -667,7 +667,7 @@ def step_select_executive_business_owners(session: requests.Session, salesforce_
     resolved_state = next_action_result["response"].get("type")
     logger.info("[WORKFLOW] Executive business owners resolved next state=%s application_id=%s", resolved_state, application_id)
 
-    if resolved_state in {"get_bank_statements", "amend_bank_statements"}:
+    if resolved_state in {"get_bank_statements", "amend_bank_statements", "parse_bank_statements"}:
         salesforce_payload["system"] = salesforce_payload.get("system") or {}
         salesforce_payload["system"]["bank_statements_action_type"] = resolved_state
 
@@ -806,7 +806,7 @@ def step_submit_bank_statements(session: requests.Session, salesforce_payload: d
         action_type = next_action_response.get("type")
         logger.info("[WORKFLOW] Bank statement action_type resolved from next_action: %s", action_type)
 
-    if action_type not in {"get_bank_statements", "amend_bank_statements"}:
+    if action_type not in {"get_bank_statements", "amend_bank_statements", "parse_bank_statements"}:
         logger.error("[WORKFLOW] Unexpected bank statement action: %s", action_type)
         return {
             "success": False,
@@ -885,7 +885,7 @@ def step_submit_bank_statements(session: requests.Session, salesforce_payload: d
     next_action_result = poll_until_state(
         session=session,
         application_id=application_id,
-        target_state={"identify_executive_business_owners", "application_submitted", "amend_bank_statements"},
+        target_state={"identify_executive_business_owners", "application_submitted", "amend_bank_statements", "parse_bank_statements"},
         interval_seconds=3,
         max_attempts=20)
 
@@ -903,7 +903,7 @@ def step_submit_bank_statements(session: requests.Session, salesforce_payload: d
     resolved_state = next_action_result["response"].get("type")
     logger.info("[WORKFLOW] Bank statements resolved next state=%s application_id=%s", resolved_state, application_id)
 
-    if resolved_state == "amend_bank_statements":
+    if resolved_state in {"amend_bank_statements", "parse_bank_statements"}:
         salesforce_payload["system"]["bank_statements_action_type"] = resolved_state
         return {
             "success": True,

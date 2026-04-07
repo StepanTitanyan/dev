@@ -78,6 +78,11 @@
     <i class="bi bi-braces me-1"></i>Raw Payload</a></li>
   <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#working-tab">
     <i class="bi bi-braces-asterisk me-1"></i>Working Payload</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#files-tab">
+    <i class="bi bi-paperclip me-1"></i>Files
+    {% set total_files = (files_data.content_version_ids | length) + (files_data.uploaded_documents | length) + (files_data.uploaded_bank_statements | length) %}
+    {% if total_files > 0 %}<span class="badge bg-secondary ms-1">{{ total_files }}</span>{% endif %}
+  </a></li>
 </ul>
 <div class="tab-content">
 
@@ -161,6 +166,110 @@
         <pre class="m-0 p-3" style="border-radius:0">{{ working_json }}</pre>
       </div>
     </div>
+  </div>
+
+  <!-- Files -->
+  <div class="tab-pane fade" id="files-tab">
+
+    {% if files_data.processing_files_dir %}
+    <div class="alert alert-secondary small py-2 mb-3">
+      <i class="bi bi-folder me-1"></i>
+      <strong>Staging directory:</strong>
+      <span class="font-monospace ms-1">{{ files_data.processing_files_dir }}</span>
+    </div>
+    {% endif %}
+
+    <!-- Salesforce source file IDs -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-transparent fw-semibold small">
+        <i class="bi bi-cloud-download me-1"></i>Salesforce ContentVersion IDs
+        <span class="badge bg-secondary ms-1">{{ files_data.content_version_ids | length }}</span>
+      </div>
+      {% if files_data.content_version_ids %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light"><tr><th>#</th><th>ContentVersion ID</th></tr></thead>
+          <tbody>
+            {% for cvid in files_data.content_version_ids %}
+            <tr>
+              <td class="text-muted small">{{ loop.index }}</td>
+              <td class="font-monospace small">{{ cvid }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body text-muted small">No Salesforce file IDs recorded.</div>
+      {% endif %}
+    </div>
+
+    <!-- Uploaded documents -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-transparent fw-semibold small">
+        <i class="bi bi-file-earmark-text me-1"></i>Uploaded Documents
+        <span class="badge bg-secondary ms-1">{{ files_data.uploaded_documents | length }}</span>
+      </div>
+      {% if files_data.uploaded_documents %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light"><tr><th>#</th><th>File</th><th>Details</th></tr></thead>
+          <tbody>
+            {% for doc in files_data.uploaded_documents %}
+            <tr>
+              <td class="text-muted small">{{ loop.index }}</td>
+              <td class="font-monospace small">
+                {% if doc is mapping %}{{ doc.get("file_name") or doc.get("name") or doc.get("path") or "—" }}
+                {% else %}{{ doc }}{% endif %}
+              </td>
+              <td class="small text-muted">
+                {% if doc is mapping %}
+                  {% for k, v in doc.items() %}{% if k not in ("file_name","name","path") %}<span class="me-2"><strong>{{ k }}:</strong> {{ v }}</span>{% endif %}{% endfor %}
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body text-muted small">No uploaded documents recorded.</div>
+      {% endif %}
+    </div>
+
+    <!-- Bank statements -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-transparent fw-semibold small">
+        <i class="bi bi-bank me-1"></i>Bank Statement Documents
+        <span class="badge bg-secondary ms-1">{{ files_data.uploaded_bank_statements | length }}</span>
+      </div>
+      {% if files_data.uploaded_bank_statements %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light"><tr><th>#</th><th>File</th><th>Details</th></tr></thead>
+          <tbody>
+            {% for doc in files_data.uploaded_bank_statements %}
+            <tr>
+              <td class="text-muted small">{{ loop.index }}</td>
+              <td class="font-monospace small">
+                {% if doc is mapping %}{{ doc.get("file_name") or doc.get("name") or doc.get("path") or "—" }}
+                {% else %}{{ doc }}{% endif %}
+              </td>
+              <td class="small text-muted">
+                {% if doc is mapping %}
+                  {% for k, v in doc.items() %}{% if k not in ("file_name","name","path") %}<span class="me-2"><strong>{{ k }}:</strong> {{ v }}</span>{% endif %}{% endfor %}
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body text-muted small">No bank statement documents recorded.</div>
+      {% endif %}
+    </div>
+
   </div>
 
 </div>

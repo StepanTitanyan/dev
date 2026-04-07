@@ -127,12 +127,12 @@ class ExecutiveBusinessOwnerSchema(BaseModel):
     registry_name: str
     first_name: str
     last_name: str
-    percent_shares_held: float | int | None = None
-    date_of_birth: str | None = None
-    address_house_number_or_name: str | None = None
-    address_street: str | None = None
-    address_city: str | None = None
-    address_postcode: str | None = None
+    percent_shares_held: float | int
+    date_of_birth: str
+    address_house_number_or_name: str
+    address_street: str
+    address_city: str
+    address_postcode: str
     previous_addresses: list[PreviousAddressSchema] = Field(default_factory=list)
     fc_person_id: str | None = None
 

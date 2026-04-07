@@ -75,3 +75,4 @@ exports/
 
 # Node (if frontend tooling is added later)
 node_modules/
+task-def-*-rendered.json

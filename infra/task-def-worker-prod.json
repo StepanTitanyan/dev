@@ -9,7 +9,7 @@
   "containerDefinitions": [
     {
       "name": "rise-worker-prod",
-      "image": "667659727588.dkr.ecr.eu-west-2.amazonaws.com/rise-backend-services:latest",
+      "image": "IMAGE_PLACEHOLDER",
       "essential": true,
       "command": [
         "python3", "-m", "rise.workers.funding_circle.runner"
