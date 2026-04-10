@@ -105,6 +105,7 @@ def poll_until_state(session: requests.Session, application_id: str, target_stat
                 "final_state": state,
                 "response": data,
                 "history": history,
+                "rejected": state == "reject_application",
                 "error": "Terminal state reached: %s" % state}
 
         if state in pollable_states:
@@ -438,12 +439,13 @@ def step_eligibility_check(session: requests.Session, salesforce_payload: dict):
     if not next_action_result["success"]:
         return {
             "success": False,
-            "step": "eligibility_check",
+            "step": "select_executive_business_owners",
             "stage": "next_action_polling",
             "application_id": application_id,
             "salesforce_payload": salesforce_payload,
             "message": next_action_result.get("error"),
             "next_action_result": next_action_result,
+            "rejected": next_action_result.get("rejected", False),
             "retryable": next_action_result.get("final_state") == "timeout"}
 
     return {
@@ -570,12 +572,13 @@ def step_get_contact_details(session: requests.Session, salesforce_payload: dict
     if not next_action_result["success"]:
         return {
             "success": False,
-            "step": "get_contact_details",
+            "step": "select_executive_business_owners",
             "stage": "next_action_polling",
             "application_id": application_id,
             "salesforce_payload": salesforce_payload,
             "message": next_action_result.get("error"),
             "next_action_result": next_action_result,
+            "rejected": next_action_result.get("rejected", False),
             "retryable": next_action_result.get("final_state") == "timeout"}
 
     resolved_state = next_action_result["response"].get("type")
@@ -892,12 +895,13 @@ def step_submit_bank_statements(session: requests.Session, salesforce_payload: d
     if not next_action_result["success"]:
         return {
             "success": False,
-            "step": "submit_bank_statements",
+            "step": "select_executive_business_owners",
             "stage": "next_action_polling",
             "application_id": application_id,
             "salesforce_payload": salesforce_payload,
             "message": next_action_result.get("error"),
             "next_action_result": next_action_result,
+            "rejected": next_action_result.get("rejected", False),
             "retryable": next_action_result.get("final_state") == "timeout"}
 
     resolved_state = next_action_result["response"].get("type")

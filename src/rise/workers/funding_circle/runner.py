@@ -213,7 +213,33 @@ def wait_for_otp_from_db(timeout_seconds: int):
 def login_and_bootstrap(session: requests.Session):
     logger.info("[INITIALIZE] Logging in worker session...")
 
-    login_response = auth_login(session, USERNAME, PASSWORD)
+    # Clear any stale unconsumed OTPs from previous login attempts.
+    # Submitting an old OTP with a new Cognito session token causes 401.
+    db = SessionLocal()
+    try:
+        from rise.db.models import OtpMessage
+        stale = (
+            db.query(OtpMessage)
+            .filter(OtpMessage.service == "funding_circle", OtpMessage.status == "received")
+            .all()
+        )
+        for otp in stale:
+            otp.status = "expired"
+        if stale:
+            db.commit()
+            logger.info("[INITIALIZE] Cleared %s stale OTP(s) before new login", len(stale))
+    except Exception as exc:
+        logger.warning("[INITIALIZE] Failed to clear stale OTPs: %s", exc)
+    finally:
+        db.close()
+
+    try:
+        login_response = auth_login(session, USERNAME, PASSWORD)
+    except Exception as exc:
+        if hasattr(exc, "response") and exc.response is not None and exc.response.status_code == 429:
+            logger.warning("[INITIALIZE] FC auth rate limited (429) — sleeping 60s before retry")
+            time.sleep(60)
+        raise
     parsed = parse_initiate_auth_response(login_response)
 
     logger.info("[INITIALIZE] Login challenge type: %s", parsed["challenge_name"])
@@ -286,7 +312,14 @@ def _is_already_processing(application_id: int) -> bool:
     try:
         application = get_application_by_id(db, application_id)
         if not application:
-            return False
+            logger.warning("[INITIALIZE] Application not found application_id=%s", application_id)
+            return
+
+        if application.status in {"failed", "rejected", "completed", "partially_completed"}:
+            logger.info(
+                "[INITIALIZE] Skipping application_id=%s — already in terminal status=%s",
+                application_id, application.status)
+            return
 
         if application.status != "processing":
             return False
@@ -462,22 +495,26 @@ def process_application(application_id: int, session: requests.Session):
                  "error": error_message,
                  "step": application.current_step})
         else:
+            is_rejected = result.get("rejected", False)
+            final_status = "rejected" if is_rejected else "failed"
+
             update_application_status(
                 db=db,
                 application=application,
-                status="failed",
+                status=final_status,
                 current_step=application.current_step,
                 last_error=error_message)
             logger.error(
-                "[INITIALIZE] ✗ Application permanently failed "
+                "[INITIALIZE] ✗ Application permanently %s "
                 "application_id=%s tracking_id=%s salesforce_record_id=%s "
                 "fc_application_id=%s retryable=%s retry_count=%s error=%s",
+                final_status,
                 application_id, tracking_id, salesforce_record_id,
                 application.external_id,
                 retryable, application.retry_count, error_message)
             log_application_event(
                 db, application_id, EVT_FAILED,
-                "Application permanently failed — %s" % error_message,
+                "Application %s — %s" % (final_status, error_message),
                 {"error": error_message, "retryable": retryable,
                  "retry_count": application.retry_count,
                  "step": application.current_step,
@@ -598,11 +635,16 @@ def process_next_due_application(session: requests.Session):
     return True
 
 
-def reenqueue_due_retries():
+def reenqueue_due_retries(skip_application_id: int | None = None):
     db = SessionLocal()
     try:
         application = get_next_processible_application(db)
         if not application:
+            return
+        if skip_application_id and application.id == skip_application_id:
+            logger.debug(
+                "[INITIALIZE] Skipping re-enqueue for application_id=%s — already being processed",
+                skip_application_id)
             return
         logger.info(
             "[INITIALIZE] Re-enqueuing due retry application_id=%s tracking_id=%s",
@@ -690,14 +732,7 @@ def run_sqs_poll_loop():
                 QueueUrl=settings.SQS_QUEUE_URL,
                 MaxNumberOfMessages=1,
                 WaitTimeSeconds=10,
-                # Prevent SQS from re-delivering the message while we are still
-                # processing. Without this, the default timeout (often 30s) expires
-                # mid-workflow and SQS delivers the same application again, causing
-                # a duplicate submission to FC and a permanent rejection.
                 VisibilityTimeout=SQS_VISIBILITY_TIMEOUT_SECONDS)
-
-            # Re-enqueue any retrying applications whose delay has now passed
-            reenqueue_due_retries()
 
             messages = response.get("Messages", [])
             if not messages:
@@ -714,6 +749,9 @@ def run_sqs_poll_loop():
                     "[INITIALIZE] Received SQS message application_id=%s tracking_id=%s",
                     application_id, tracking_id)
 
+                # Re-enqueue due retries but skip this application to avoid double processing
+                reenqueue_due_retries(skip_application_id=application_id)
+
                 try:
                     ensure_authenticated(session)
                     process_application(application_id, session)
@@ -728,6 +766,12 @@ def run_sqs_poll_loop():
                         "[INITIALIZE] Failed to process SQS message "
                         "application_id=%s tracking_id=%s error=%s",
                         application_id, tracking_id, exc)
+                    if "429" in str(exc):
+                        logger.warning("[INITIALIZE] Rate limited by FC — sleeping 60s")
+                        time.sleep(60)
+                    elif "401" in str(exc) and "mfa_entry" in str(exc):
+                        logger.warning("[INITIALIZE] OTP rejected by FC (stale OTP) — sleeping 30s")
+                        time.sleep(30)
 
         except Exception as exc:
             logger.exception("[INITIALIZE] SQS poll loop error: %s", exc)

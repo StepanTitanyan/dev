@@ -3,6 +3,14 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from rise.api.validators.base import BaseValidator
 
 
+BUSINESS_STRUCTURE_MAP = {
+    "limited": "limited-company",
+    "limited-company": "limited-company",
+    "limited-liability-partnership": "limited-liability-partnership",
+    "llp": "limited-liability-partnership",
+    "ltd": "limited-company"}
+
+
 class LoanRequestSchema(BaseModel):
     requested_amount_gbp: float | int
     term_requested_months: int
@@ -25,7 +33,18 @@ class CompanySchema(BaseModel):
     unique_company_identifier: str | None = None
     client_email: str
 
-    @field_validator("business_structure", "client_email")
+    @field_validator("business_structure")
+    @classmethod
+    def normalise_business_structure(cls, value: str) -> str:
+        normalised = BUSINESS_STRUCTURE_MAP.get(value.lower().strip())
+        if not normalised:
+            raise ValueError(
+                f"business_structure '{value}' is not supported. "
+                f"Allowed: {list(BUSINESS_STRUCTURE_MAP.keys())}"
+            )
+        return normalised
+
+    @field_validator("client_email")
     @classmethod
     def not_empty(cls, value: str):
         if not value or not value.strip():
@@ -170,5 +189,3 @@ class FundingCircleValidator(BaseValidator):
 
     def validate(self, raw: dict) -> dict:
         return FundingCirclePayload(**raw).model_dump()
-
-

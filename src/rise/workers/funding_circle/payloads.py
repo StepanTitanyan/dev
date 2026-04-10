@@ -1,6 +1,14 @@
 from typing import Any
 
 
+BUSINESS_STRUCTURE_MAP = {
+    "limited": "limited-company",
+    "limited-company": "limited-company",
+    "limited-liability-partnership": "limited-liability-partnership",
+    "llp": "limited-liability-partnership",
+    "ltd": "limited-company"}
+
+
 def _company_section(salesforce_payload: dict) -> dict:
     return salesforce_payload.get("company") or {}
 
@@ -31,8 +39,13 @@ def _to_cents(amount: Any) -> int:
     return int(round(float(amount) * 100))
 
 
+def _normalise_business_structure(value: str) -> str:
+    return BUSINESS_STRUCTURE_MAP.get(value.lower().strip(), value)
+
+
 def _derive_company_search_type(business_structure: str) -> str:
-    if business_structure == "limited-liability-partnership":
+    normalised = _normalise_business_structure(business_structure)
+    if normalised == "limited-liability-partnership":
         return "limited-liability-partnership"
     return "limited"
 
@@ -166,9 +179,15 @@ def build_eligibility_payload(company: dict, salesforce_payload: dict):
 
     amount_requested_cents = _to_cents(loan_request.get("requested_amount_gbp"))
 
+    raw_structure = (
+        company.get("business_structure")
+        or company_section.get("business_structure")
+        or "")
+    business_structure = _normalise_business_structure(raw_structure)
+
     return {
         "amount_requested_cents": amount_requested_cents,
-        "business_structure": company.get("business_structure") or company_section.get("business_structure"),
+        "business_structure": business_structure,
         "commission": salesforce_payload.get("commission"),
         "company_name": company_name,
         "company_codas_id": company_codas_id,
@@ -223,7 +242,7 @@ def build_company_performance_payload(salesforce_payload: dict):
         "turnover_band": _map_turnover_amount_to_fc_turnover_band(business_performance.get("self_stated_turnover")),
         "self_stated_industry": business_performance.get("self_stated_industry"),
         "self_stated_turnover": business_performance.get("self_stated_turnover"),
-        "self_stated_turnover_for_2019": business_performance.get("self_stated_turnover_for_2019"),
+        "self_stated_turnover_for_2019": business_performance.get("self_stated_turnover_for_2019") or 0,
         "full_time_employees": _map_full_time_employees_to_fc_value(business_performance.get("full_time_employees")),
         "overdraft_facility_exists": business_performance.get("overdraft_facility_exists"),
         "company_established_or_registered_in_northern_ireland": ni_registered,

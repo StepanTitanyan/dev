@@ -109,7 +109,7 @@ def applications_list(
         "date_from": date_from,
         "date_to": date_to,
         "company_name": _company_name,
-        "statuses": ["queued", "processing", "retrying", "completed", "partially_completed", "failed"],
+        "statuses": ["queued", "processing", "retrying", "completed", "partially_completed", "failed", "rejected"],
     })
 
 
